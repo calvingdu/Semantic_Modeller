@@ -29,7 +29,7 @@ export default function TitleAnimation() {
         {titleText.split(' ').map((word, index, array) => (
           <React.Fragment key={index}>
             {index === array.length - 1 ? (
-              <span className="text-blue-500">{word}</span>
+              <span className="text-blue-600">{word}</span>
             ) : (
               word
             )}

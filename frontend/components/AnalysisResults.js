@@ -16,7 +16,7 @@ export default function AnalysisResults() {
     page: i + 1,
     text: `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. ${i + 1}`,
     topic: `Example Topic ${(i % 5) + 1}`,
-    score: (Math.random() * 0.5 + 0.5).toFixed(2)
+    score: (0.00).toFixed(2)
   }))
 
   const totalPages = Math.ceil(references.length / ITEMS_PER_PAGE)
