@@ -33,6 +33,16 @@
     --ring: 222.2 84% 4.9%;
  
     --radius: 0.5rem;
+
+    --topic-unselected: #333333;
+
+    /* Topic colors for light mode */
+    --topic-color-1: #e6f2ff;
+    --topic-color-2: #e6ffe6;
+    --topic-color-3: #fff2e6;
+    --topic-color-4: #ffe6e6;
+    --topic-color-5: #f2e6ff;
+    --topic-color-default: #f0f0f0;
   }
  
   .light {
@@ -63,7 +73,17 @@
     --border: 0 0% 85%;
     --input: 0 0% 90%;
     --ring: 0 0% 85%;
-}
+
+    /* Topic colors for light mode (same as root) */
+    --topic-color-1: #e6f2ff;
+    --topic-color-2: #e6ffe6;
+    --topic-color-3: #fff2e6;
+    --topic-color-4: #ffe6e6;
+    --topic-color-5: #f2e6ff;
+    --topic-color-default: #f0f0f0;
+    
+    --topic-unselected: #ccc6c6;;
+  }
 
   .dark {
     --background: 222.2 84% 4.9%;
@@ -93,6 +113,16 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
+
+    --topic-unselected: #293845;
+
+    /* Topic colors for dark mode */
+    --topic-color-1: #1a3d66;
+    --topic-color-2: #1a661a;
+    --topic-color-3: #663d1a;
+    --topic-color-4: #661a1a;
+    --topic-color-5: #3d1a66;
+    --topic-color-default: #333333;
   }
 }
  

@@ -12,15 +12,21 @@ export default function Home() {
   const [topics, setTopics] = useState([])
   const [currentFileIndex, setCurrentFileIndex] = useState(0)
   const [currentPage, setCurrentPage] = useState(1)
-  const [highlights, setHighlights] = useState([])
 
-  const handleTopicClick = useCallback((topic) => {
-    const highlight = highlights.find(h => h.text.toLowerCase() === topic.toLowerCase());
-    if (highlight) {
-      setCurrentPage(highlight.page);
-      // You might want to add logic here to scroll to the specific highlight on the page
+  const handleTopicClick = useCallback((topic, file, page) => {
+    const fileIndex = files.findIndex(f => f.name === file);
+    if (fileIndex !== -1) {
+      setCurrentFileIndex(fileIndex);
+      setCurrentPage(page);
     }
-  }, [highlights, setCurrentPage]);
+  }, [files, setCurrentFileIndex, setCurrentPage]);
+
+  const handleFileSelect = useCallback((file) => {
+    const fileIndex = files.findIndex(f => f.name === file);
+    if (fileIndex !== -1) {
+      setCurrentFileIndex(fileIndex);
+    }
+  }, [files, setCurrentFileIndex]);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -38,17 +44,19 @@ export default function Home() {
             setCurrentFileIndex={setCurrentFileIndex}
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
-            topics={topics}
-            setHighlights={setHighlights}
           />
         </div>
         <div>
           <TopicManager 
             topics={topics} 
             setTopics={setTopics} 
-            onTopicClick={handleTopicClick}
           />
-          <AnalysisResults />
+          <AnalysisResults 
+            topics={topics}
+            onTopicClick={handleTopicClick}
+            files={files.map(file => file.name)}
+            onFileSelect={handleFileSelect}
+          />
         </div>
       </div>
     </div>
