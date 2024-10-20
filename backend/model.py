@@ -18,6 +18,7 @@ nltk.download("stopwords", quiet=True)
 MINIMUM_PASSAGE_CHAR_LENTH = 20
 MINIMUM_PASSAGE_WORD_LENTH = 5
 GENERATED_TOPICS_COUNT = 5
+MAX_PASSAGES_PER_TOPIC = 25
 
 
 class SemanticModel:
@@ -68,12 +69,12 @@ class SemanticModel:
         ]
 
     def get_embeddings(self, sentences):
-        return self.embedding_model.encode(sentences, convert_to_tensor=True)
+        return self.embedding_model.encode(sentences, convert_to_tensor=True, batch_size=160)
 
     def calculate_similarity(
         self, passage_embedding, topic_embedding, method="ensemble"
     ):
-        # Convert PyTorch tensors to NumPy arrays if necessary
+        # Convert PyTorch tensors to NumPy arrays
         if isinstance(passage_embedding, torch.Tensor):
             passage_embedding = passage_embedding.cpu().numpy()
         if isinstance(topic_embedding, torch.Tensor):
@@ -90,7 +91,7 @@ class SemanticModel:
 
         elif method == "euclidean":
             return 1 / (1 + np.linalg.norm(passage_embedding - topic_embedding))
-
+ 
         elif method == "manhattan":
             return 1 / (1 + np.sum(np.abs(passage_embedding - topic_embedding)))
 
@@ -133,7 +134,7 @@ class SemanticModel:
         ]
 
         # Identify important words to generate topics
-        tfidf = TfidfVectorizer(max_features=100)
+        tfidf = TfidfVectorizer(max_features=10)
         tfidf_matrix = tfidf.fit_transform([" ".join(words)])
         feature_names = tfidf.get_feature_names_out()
         tfidf_scores = tfidf_matrix.toarray()[0]
@@ -144,30 +145,49 @@ class SemanticModel:
 
         return generated_topics
 
-    def semantic_modeling(self, pdf_paths, user_topics, min_score=0.5):
+    def semantic_modeling(self, pdf_files, user_topics=None, min_score: int = 0.5, generate_topics: bool = True, logger=None):
         all_text = []
         all_sentences = []
         doc_lengths = []
-        sentence_to_page = {} 
+        sentence_to_page = {}
+        sentence_to_doc = {}
 
-        for pdf_path in pdf_paths:
-            reader = PdfReader(pdf_path)
-            current_sentence_index = len(all_sentences)
+        for doc_index, pdf_file in enumerate(pdf_files):
+            pdf_stream = pdf_file.stream
+            reader = PdfReader(pdf_stream)
+            doc_sentence_count = 0
+            
             for page_num, page in enumerate(reader.pages, 1):
-                text = page.extract_text()
+                try:
+                    text = page.extract_text()
+                except Exception as e:
+                    logger.info(f"Error extracting text from {pdf_file.filename}, page {page_num}: {str(e)}")
+                    continue
                 sentences = self.preprocess_text(text)
                 all_text.extend(sentences)
-                all_sentences.extend(sentences)
-                # Map each sentence to its page number
-                for i in range(len(sentences)):
-                    sentence_to_page[current_sentence_index + i] = page_num
-                current_sentence_index += len(sentences)
-            doc_lengths.append(len(all_sentences) - current_sentence_index)
+                
+                for sentence in sentences:
+                    sentence_index = len(all_sentences)
+                    all_sentences.append(sentence)
+                    sentence_to_page[sentence_index] = page_num
+                    sentence_to_doc[sentence_index] = doc_index
+                    doc_sentence_count += 1
 
-        print(f"Total number of sentences: {len(all_sentences)}")
+            doc_lengths.append(doc_sentence_count)
+            print(f"Document: {pdf_file.filename}, Sentences: {doc_sentence_count}")
+
+        print(f"Total sentences across all documents: {len(all_sentences)}")
+        print(f"Document lengths: {doc_lengths}")
 
         # Generate topics
-        generated_topics = self.generate_topics(" ".join(all_text), num_topics=GENERATED_TOPICS_COUNT)
+        if user_topics == None or user_topics == ['']:
+            user_topics = []
+
+        if generate_topics == True or generate_topics == "true":
+            generated_topics = self.generate_topics(" ".join(all_text), num_topics=GENERATED_TOPICS_COUNT)
+        else:
+            generated_topics = []
+            
         all_topics = list(set(user_topics + generated_topics))
 
         # Get embeddings
@@ -183,24 +203,20 @@ class SemanticModel:
                 for j in range(len(all_embeddings))
             ]
 
-            top_indices = torch.tensor(similarities).argsort(descending=True).tolist()
+            
+            top_indices = torch.tensor(similarities).argsort(descending=True).tolist()[0:MAX_PASSAGES_PER_TOPIC]
 
             topic_results = {"topic": topic, "similar_passages": []}
 
-            current_doc = 0
-            current_count = 0
             for idx in top_indices:
-                while idx >= current_count + doc_lengths[current_doc]:
-                    current_count += doc_lengths[current_doc]
-                    current_doc += 1
-
                 score = similarities[idx]
                 if score > min_score:
                     passage = {
                         "text": all_sentences[idx],
                         "score": score,
-                        "document": os.path.basename(pdf_paths[current_doc]),
-                        "page": sentence_to_page[idx]  # Add the page number
+                        "document": pdf_files[sentence_to_doc[idx]].filename,
+                        "page": sentence_to_page[idx],
+                        "topic": topic
                     }
                     topic_results["similar_passages"].append(passage)
 

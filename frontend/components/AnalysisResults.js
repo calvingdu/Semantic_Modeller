@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Slider } from "@/components/ui/slider"
@@ -17,75 +17,49 @@ const TOPIC_COLORS = [
   'var(--topic-color-5)',
 ]
 
-export default function AnalysisResults({ topics, onTopicClick, files, onFileSelect }) {
-  console.log("AnalysisResults props:", { topics, files });
+export default function AnalysisResults({ topics, onTopicClick, files, onFileSelect, analysisResults, isLoading, error }) {
   const [view, setView] = useState('list')
   const [currentPage, setCurrentPage] = useState(1)
-  const [analysisResults, setAnalysisResults] = useState([])
+  const [pageInput, setPageInput] = useState('1')
   const [filteredTopics, setFilteredTopics] = useState([])
   const [minScore, setMinScore] = useState(0)
   const [minScoreInput, setMinScoreInput] = useState('0')
   const [showFilters, setShowFilters] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState(null)
   const [sortBy, setSortBy] = useState('score')
   const [sortOrder, setSortOrder] = useState('desc')
   const [selectedFile, setSelectedFile] = useState('all')
   const { theme } = useTheme()
 
-  useEffect(() => {
-    console.log("Files in useEffect:", files);
-    const fetchAnalysisResults = async () => {
-      setIsLoading(true)
-      setError(null)
-      try {
-        // Simulate analysis results
-        const simulatedResults = files.flatMap(file => 
-          Array.from({ length: 5 }, (_, i) => ({
-            file: file,
-            page: i + 1,
-            text: `Sample text from ${file}, page ${i + 1}. Lorem ipsum dolor sit amet, consectetur adipiscing elit.`,
-            topic: `Example Topic ${(i % 5) + 1}`,
-            score: Math.random().toFixed(2)
-          }))
-        );
-        
-        setAnalysisResults(simulatedResults)
-      } catch (err) {
-        console.error("Error fetching analysis results:", err)
-        setError('Failed to fetch analysis results. Please try again later.')
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchAnalysisResults()
-  }, [files])
-
   const filteredAndSortedResults = useMemo(() => {
-    let results = analysisResults.filter(result => 
-      (filteredTopics.length === 0 || filteredTopics.includes(result.topic)) &&
-      parseFloat(result.score) >= minScore &&
-      (selectedFile === 'all' || result.file === selectedFile)
-    )
-
+    if (!analysisResults) return [];
+  
+    let results = analysisResults.flatMap(topicResult => 
+      topicResult.similar_passages.map(passage => ({
+        ...passage,
+        topic: topicResult.topic
+      }))
+    );
+  
+    results = results.filter(passage => 
+      (filteredTopics.length === 0 || filteredTopics.includes(passage.topic)) &&
+      parseFloat(passage.score) >= parseFloat(minScoreInput) &&
+      (selectedFile === 'all' || passage.document === selectedFile)
+    );
+  
     results.sort((a, b) => {
       if (sortBy === 'score') {
-        return sortOrder === 'asc' ? parseFloat(a.score) - parseFloat(b.score) : parseFloat(b.score) - parseFloat(a.score)
+        return sortOrder === 'asc' ? a.score - b.score : b.score - a.score;
       } else if (sortBy === 'page') {
-        return sortOrder === 'asc' ? a.page - b.page : b.page - a.page
+        return sortOrder === 'asc' ? a.page - b.page : b.page - a.page;
       } else {
-        // Safely handle potential undefined files
-        const fileA = a.file || ''
-        const fileB = b.file || ''
         return sortOrder === 'asc' 
-          ? fileA.localeCompare(fileB) 
-          : fileB.localeCompare(fileA)
+          ? a.document.localeCompare(b.document) 
+          : b.document.localeCompare(a.document);
       }
-    })
-
-    return results
-  }, [analysisResults, filteredTopics, minScore, selectedFile, sortBy, sortOrder])
+    });
+  
+    return results;
+  }, [analysisResults, filteredTopics, minScoreInput, selectedFile, sortBy, sortOrder]);
 
   const totalPages = Math.ceil(filteredAndSortedResults.length / ITEMS_PER_PAGE)
   const currentResults = filteredAndSortedResults.slice(
@@ -93,14 +67,18 @@ export default function AnalysisResults({ topics, onTopicClick, files, onFileSel
     currentPage * ITEMS_PER_PAGE
   )
 
+  useEffect(() => {
+    setPageInput(currentPage.toString());
+  }, [currentPage]);
+
   const getTopicColor = (topic) => {
     const index = topics.indexOf(topic)
     return index !== -1 ? TOPIC_COLORS[index % TOPIC_COLORS.length] : 'var(--topic-color-default)'
   }
 
   const handleResultClick = (result) => {
-    onTopicClick(result.topic, result.file, result.page)
-    onFileSelect(result.file)
+    onTopicClick(result.topic, result.document, result.page)
+    onFileSelect(result.document)
   }
 
   const toggleTopicFilter = (topic) => {
@@ -130,12 +108,36 @@ export default function AnalysisResults({ topics, onTopicClick, files, onFileSel
     }
   }
 
-  if (isLoading) {
-    return <div className="text-center py-8">Loading analysis results...</div>
+  const handlePageInputChange = (e) => {
+    setPageInput(e.target.value)
   }
+
+  const handlePageInputSubmit = (e) => {
+    e.preventDefault()
+    const newPage = parseInt(pageInput, 10)
+    if (!isNaN(newPage) && newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage)
+    }
+  }
+
+  const handlePreviousPage = () => {
+    setCurrentPage(prev => Math.max(prev - 1, 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage(prev => Math.min(prev + 1, totalPages));
+  };
 
   if (error) {
     return <div className="text-center py-8 text-destructive">{error}</div>
+  }
+
+  if (isLoading) {
+    return <div className="text-center py-8">Analyzing documents...</div>
+  }
+
+  if (!analysisResults || analysisResults.length === 0) {
+    return <div className="text-center py-8">No analysis results available. Please upload files and start the analysis.</div>
   }
 
   return (
@@ -180,7 +182,7 @@ export default function AnalysisResults({ topics, onTopicClick, files, onFileSel
             <SelectContent>
               <SelectItem value="all">All Files</SelectItem>
               {files.map((file, index) => (
-                <SelectItem key={index} value={file}>{file}</SelectItem>
+                <SelectItem key={index} value={file.name}>{file.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -204,7 +206,7 @@ export default function AnalysisResults({ topics, onTopicClick, files, onFileSel
           </div>
           
           <div className="flex items-center mb-2">
-            <h4 className="font-semibold">Minimum Score:</h4>
+            <h4 className="font-semibold mr-2">Minimum Score:</h4>
             <form onSubmit={handleMinScoreSubmit} className="flex-shrink-0">
               <Input
                 type="text"
@@ -226,7 +228,6 @@ export default function AnalysisResults({ topics, onTopicClick, files, onFileSel
               }}
               className="w-full"
             />
-
           </div>
         </div>
       )}
@@ -237,7 +238,7 @@ export default function AnalysisResults({ topics, onTopicClick, files, onFileSel
             <Button
               variant="outline"
               size="sm"
-              onClick={() => toggleSort('file')}
+              onClick={() => toggleSort('document')}
             >
               Sort by File
               <ArrowUpDown className="h-4 w-4 ml-2" />
@@ -259,42 +260,55 @@ export default function AnalysisResults({ topics, onTopicClick, files, onFileSel
               <ArrowUpDown className="h-4 w-4 ml-2" />
             </Button>
           </div>
-          <div className="border rounded-lg p-4 space-y-2">
-            {currentResults.map((ref, i) => (
-              <div 
-                key={i} 
-                className="p-4 bg-muted rounded cursor-pointer hover:bg-accent"
-                onClick={() => handleResultClick(ref)}
-              >
-                <div className="flex justify-between items-center mb-2">
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded`} style={{backgroundColor: getTopicColor(ref.topic)}}>
-                    Topic: {ref.topic}
-                  </span>
-                  <span className="text-sm text-muted-foreground">
-                    File: {ref.file}, Page {ref.page}
-                  </span>
+          <div className="border rounded-lg p-4 space-y-2 h-[800px] overflow-y-auto">
+            {currentResults.length > 0 ? (
+              currentResults.map((result, i) => (
+                <div 
+                  key={i} 
+                  className="p-4 bg-muted rounded cursor-pointer hover:bg-accent"
+                  onClick={() => handleResultClick(result)}
+                >
+                  <div className="flex justify-between items-center mb-2">
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded`} style={{backgroundColor: getTopicColor(result.topic)}}>
+                      Topic: {result.topic}
+                    </span>
+                    <span className="text-sm text-muted-foreground">
+                      File: {result.document}, Page {result.page}
+                    </span>
+                  </div>
+                  <p className="text-sm p-2 break-words">{result.text}</p>
+                  <div className="text-right text-sm text-muted-foreground">
+                    Score: {result.score.toFixed(2)}
+                  </div>
                 </div>
-                <p className="text-sm p-2">{ref.text}</p>
-                <div className="text-right text-sm text-muted-foreground">
-                  Score: {ref.score}
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <div className="text-center py-8">No results match the current filters.</div>
+            )}
           </div>
           <div className="flex justify-between items-center mt-4">
             <Button
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              onClick={handlePreviousPage}
               disabled={currentPage === 1}
               size="sm"
             >
               <ChevronLeft className="h-4 w-4 mr-2" />
               Previous
             </Button>
-            <span className="text-sm text-muted-foreground">
-              Page {currentPage} of {totalPages}
-            </span>
+            <div className="flex items-center">
+              <span className="text-sm text-muted-foreground mr-2">Page</span>
+              <form onSubmit={handlePageInputSubmit} className="flex items-center">
+                <Input
+                  type="text"
+                  value={pageInput}
+                  onChange={handlePageInputChange}
+                  className="w-16 text-center mr-2"
+                />
+                <span className="text-sm text-muted-foreground">of {totalPages}</span>
+              </form>
+            </div>
             <Button
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              onClick={handleNextPage}
               disabled={currentPage === totalPages}
               size="sm"
             >

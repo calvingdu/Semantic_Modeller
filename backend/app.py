@@ -1,14 +1,17 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
-import os
-import tempfile
-import shutil
+import io
 from model import SemanticModel
-import base64
+import logging
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
+
+# Set up logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
 semantic_model = SemanticModel()
 
 ALLOWED_EXTENSIONS = {'pdf'}
@@ -18,42 +21,28 @@ def allowed_file(filename):
 
 @app.route('/analyze', methods=['POST'])
 def analyze_documents():
-    if 'files' not in request.json:
-        return jsonify({'error': 'No files'}), 400
+    try:
+        if 'files' not in request.files:
+            logger.error("No file part in the request")
+            return jsonify({'error': 'No file part'}), 400
 
-    files_data = request.json['files']
-    topics = request.json.get('topics', [])
-    min_score = float(request.json.get('min_score', 0))
+        files = request.files.getlist('files')
+        topics = request.form.get('topics', None).split(',')
+        min_score = float(request.form.get('min_score', 0))
+        generate_topics = request.form.get('generate_topics', False)
 
-    if not files_data or not topics:
-        return jsonify({'error': 'Files and topics are required'}), 400
+        logger.info(f"Received request with {len(files)} files, topics: {topics}, min_score: {min_score}")
 
-    # Create temp directory to save files
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        saved_files = []
-        try:
-            for file_data in files_data:
-                filename = secure_filename(file_data['name'])
-                file_content = base64.b64decode(file_data['content'].split(',')[1])
-                filepath = os.path.join(tmpdirname, filename)
-                with open(filepath, 'wb') as f:
-                    f.write(file_content)
-                saved_files.append(filepath)
+        if not files or not topics:
+            logger.error("Files or topics are missing")
+            return jsonify({'error': 'Files and topics are required'}), 400
 
-            # Processing
-            results = []
-            for filepath in saved_files:
-                file_results = semantic_model.analyze(filepath, os.path.basename(filepath), topics, min_score)
-                results.extend(file_results)
+        results = semantic_model.semantic_modeling(files, topics, min_score, generate_topics, logger=logger)
+        return jsonify(results), 200
 
-            results.sort(key=lambda x: x['score'], reverse=True)
-            return jsonify(results), 200
-
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
-
-        finally:
-            shutil.rmtree(tmpdirname, ignore_errors=True)
+    except Exception as e:
+        logger.exception(f"An error occurred during analysis: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5000)

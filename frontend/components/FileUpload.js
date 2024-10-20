@@ -11,7 +11,7 @@ import FileList from './FileList'
 const MAX_FILES = 3;
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
 
-export default function FileUpload({ files, setFiles, currentFileIndex, setCurrentFileIndex, currentPage, setCurrentPage }) {
+export default function FileUpload({ files, setFiles, currentFileIndex, setCurrentFileIndex, currentPage, setCurrentPage, onFilesReady }) {
   const [numPages, setNumPages] = useState(null)
   const [error, setError] = useState(null)
   const [currentArrayBuffer, setCurrentArrayBuffer] = useState(null)
@@ -27,12 +27,7 @@ export default function FileUpload({ files, setFiles, currentFileIndex, setCurre
     try {
       console.log('Loading file:', file.name || 'Unnamed file')
       
-      const arrayBuffer = await new Promise((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = () => resolve(reader.result)
-        reader.onerror = reject
-        reader.readAsArrayBuffer(file)
-      })
+      const arrayBuffer = await file.arrayBuffer()
 
       console.log('File loaded successfully')
       return arrayBuffer
@@ -80,33 +75,35 @@ export default function FileUpload({ files, setFiles, currentFileIndex, setCurre
   }, [loadFileArrayBuffer])
 
   const onDrop = useCallback(async (acceptedFiles) => {
+    console.log('onDrop called with', acceptedFiles.length, 'files');
+    
     try {
-      console.log('Files dropped:', acceptedFiles.map(f => f.name || 'Unnamed file'))
       if (files.length + acceptedFiles.length > MAX_FILES) {
-        setError(`You can only upload a maximum of ${MAX_FILES} files. Please remove some files before adding more.`)
-        return
+        setError(`You can only upload a maximum of ${MAX_FILES} files. Please remove some files before adding more.`);
+        return;
       }
       
-      const validFiles = acceptedFiles.filter(file => file.size <= MAX_FILE_SIZE)
+      const validFiles = acceptedFiles.filter(file => file.size <= MAX_FILE_SIZE);
       if (validFiles.length < acceptedFiles.length) {
-        setError(`Some files were not added because they exceed the 10MB size limit.`)
+        setError(`Some files were not added because they exceed the 10MB size limit.`);
       }
       
-      const newFiles = await Promise.all(validFiles.map(async file => {
-        const arrayBuffer = await file.arrayBuffer()
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
-        return {
-          file,
-          pages: await getPageCount(file),
-          base64: `data:${file.type};base64,${base64}`
-        }
-      }))
-      setFiles(prevFiles => [...prevFiles, ...newFiles])
+      const newFiles = await Promise.all(validFiles.map(async (file) => ({
+        file,
+        name: file.name, 
+        pages: await getPageCount(file),
+      })));
+  
+      const updatedFiles = [...files, ...newFiles];
+      setFiles(updatedFiles);
+      
+      onFilesReady(updatedFiles);
+      
     } catch (error) {
-      console.error('Error processing dropped files:', error)
-      setError(`Failed to process uploaded files: ${error.message}. Please try again.`)
+      console.error('Error in onDrop:', error);
+      setError(`Failed to process uploaded files: ${error.message}. Please try again.`);
     }
-  }, [files, setFiles, setCurrentFileIndex, setCurrentPage, getPageCount])
+  }, [files, setFiles, getPageCount, onFilesReady]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
