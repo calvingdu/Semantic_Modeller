@@ -7,6 +7,8 @@ import AnalysisResults from '../components/AnalysisResults'
 import AnalysisController from '../components/AnalysisController'
 import ThemeSwitcher from '@/components/ThemeSwitcher'
 import TitleAnimation from '@/components/TitleAnimation'
+import { ChevronDown, ChevronUp } from 'lucide-react'
+import { Button } from "@/components/ui/button"
 
 export default function Home() {
   const [files, setFiles] = useState([])
@@ -19,6 +21,7 @@ export default function Home() {
   const [analysisError, setAnalysisError] = useState(null)
   const [generateTopics, setGenerateTopics] = useState(true)
   const [topicColors, setTopicColors] = useState({})
+  const [showAnalysisSection, setShowAnalysisSection] = useState(true)
 
   useEffect(() => {
     const colors = {};
@@ -42,6 +45,8 @@ export default function Home() {
       setCurrentFileIndex(fileIndex);
     }
   }, [files]);
+
+  const toggleAnalysisSection = () => setShowAnalysisSection(prev => !prev)
 
   const handleRemoveFiles = useCallback((removedFileNames) => {
     setFiles(prevFiles => prevFiles.filter(file => !removedFileNames.includes(file.file.name)))
@@ -93,43 +98,63 @@ export default function Home() {
 
 
   return (
-    <div className="container mx-auto px-1 py-8">
-      <div className="flex justify-end mb-4">
-        <ThemeSwitcher />
-      </div>
-      <TitleAnimation />
-      
-      <div className="grid md:grid-cols-3 gap-8">
-        <div className="md:col-span-2">
-          <FileUpload
-            files={files}
-            setFiles={setFiles}
-            currentFileIndex={currentFileIndex}
-            setCurrentFileIndex={setCurrentFileIndex}
-            currentPage={currentPage}
-            setCurrentPage={setCurrentPage}
-            analysisResults={analysisResults}
-            topics={topics}
-            onRemoveFiles={handleRemoveFiles}
-          />
+    <div className="container mx-auto px-1 py-4">
+      <div className="flex justify-between items-center mb-2">
+        <div className="w-1/3"></div>
+        <TitleAnimation className="text-2xl font-bold w-1/3 text-center" />
+        <div className="w-1/3 flex justify-end">
+          <ThemeSwitcher />
         </div>
-        <div>
-          <TopicManager 
-            topics={topics} 
-            setTopics={setTopics} 
-            onGenerateTopicsChange={handleGenerateTopicsChange}
-            generateTopics={generateTopics}
-          />
-          <AnalysisController
-            files={files}
-            topics={topics}
-            minScore={minScore}
-            generateTopics={generateTopics}
-            onAnalysisComplete={handleAnalysisComplete}
-            onAnalysisError={handleAnalysisError}
-            onTopicsGenerated={handleTopicsGenerated}
-            onGenerateTopicsChange={handleGenerateTopicsChange}
-          />
+      </div>
+      <div className="grid md:grid-cols-5 gap-4">
+        <div className="md:col-span-3">
+          <div className="bg-card rounded-lg shadow-md mb-4">
+            <div className="p-4">
+              <FileUpload
+                files={files}
+                setFiles={setFiles}
+                currentFileIndex={currentFileIndex}
+                setCurrentFileIndex={setCurrentFileIndex}
+                currentPage={currentPage}
+                setCurrentPage={setCurrentPage}
+                analysisResults={analysisResults}
+                topics={topics}
+                onRemoveFiles={handleRemoveFiles}
+              />
+            </div>
+          </div>
+        </div>
+        <div className="md:col-span-2">
+          <div className="bg-card rounded-lg shadow-md mb-4">
+            <Button
+              onClick={toggleAnalysisSection}
+              variant="ghost"
+              className="w-full flex justify-between items-center py-2 px-4"
+            >
+              <span>Analysis Controls</span>
+              {showAnalysisSection ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+            </Button>
+            {showAnalysisSection && (
+              <div className="p-4">
+                <TopicManager 
+                  topics={topics} 
+                  setTopics={setTopics} 
+                  onGenerateTopicsChange={handleGenerateTopicsChange}
+                  generateTopics={generateTopics}
+                />
+                <AnalysisController
+                  files={files}
+                  topics={topics}
+                  minScore={minScore}
+                  generateTopics={generateTopics}
+                  onAnalysisComplete={handleAnalysisComplete}
+                  onAnalysisError={handleAnalysisError}
+                  onTopicsGenerated={handleTopicsGenerated}
+                  onGenerateTopicsChange={handleGenerateTopicsChange}
+                />
+              </div>
+            )}
+          </div>
           <AnalysisResults 
             topics={topics}
             onTopicClick={handleTopicClick}

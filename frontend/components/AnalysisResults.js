@@ -208,33 +208,33 @@ export default function AnalysisResults({ topics, onTopicClick, files, onFileSel
       )}
 
       {view === 'list' ? (
-        <>
-          <div className="border rounded-lg p-4 space-y-4 flex-grow overflow-y-auto">
-            {currentResults.length > 0 ? (
-              currentResults.map((result, i) => (
-                <div 
-                  key={i} 
-                  className="p-4 bg-muted rounded cursor-pointer hover:bg-accent"
-                  onClick={() => handleResultClick(result)}
-                >
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2">
+      <>
+        <div className="flex-grow overflow-y-auto">
+          {currentResults.length > 0 ? (
+            currentResults.map((result, i) => (
+              <div 
+                key={i} 
+                className="border-b last:border-b-0 cursor-pointer hover:bg-accent"
+                onClick={() => handleResultClick(result)}
+              >
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-2">
                   <span className={`text-xs font-semibold px-2 py-0.5 rounded mb-2 sm:mb-0`} style={{backgroundColor: getTopicColor(result.topic)}}>
-                      {result.topic}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {truncateFileName(result.document, 30)}, Page {result.page}
-                    </span>
-                  </div>
-                  <p className="text-sm p-2 break-words bg-background rounded">{result.text}</p>
-                  <div className="text-right text-xs text-muted-foreground mt-2">
-                    Score: {result.score.toFixed(2)}
-                  </div>
+                    {result.topic}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {truncateFileName(result.document, 30)}, Page {result.page}
+                  </span>
                 </div>
-              ))
-            ) : (
-              <div className="text-center py-8">No results match the current filters.</div>
-            )}
-          </div>
+                <p className="text-sm p-2 break-words">{result.text}</p>
+                <div className="text-right text-xs text-muted-foreground p-2">
+                  Score: {result.score.toFixed(2)}
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-8">No results match the current filters.</div>
+          )}
+        </div>
           <div className="flex justify-between items-center mt-4">
             <Button
               onClick={handlePreviousPage}

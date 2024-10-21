@@ -31,11 +31,6 @@ export default function PDFViewer({
   const [pdfFile, setPdfFile] = useState(null);
   const [debugInfo, setDebugInfo] = useState('');
 
-  const getTopicColor = useCallback((topic) => {
-    const index = topics.indexOf(topic);
-    return index !== -1 ? TOPIC_COLORS[index % TOPIC_COLORS.length] : 'var(--topic-color-default)';
-  }, [topics]);
-
   useEffect(() => {
     if (currentArrayBuffer) {
       const blob = new Blob([currentArrayBuffer], { type: 'application/pdf' });
@@ -70,7 +65,12 @@ export default function PDFViewer({
     }
   }, [numPages, setCurrentPage]);
 
-  const customTextRenderer = useCallback(({ str, itemIndex }) => {
+  const getTopicColor = useCallback((topic) => {
+    const index = topics.indexOf(topic);
+    return index !== -1 ? TOPIC_COLORS[index % TOPIC_COLORS.length] : 'var(--topic-color-default)';
+  }, [topics]);
+
+  const customTextRenderer = useCallback(({ str }) => {
     if (!analysisResults || !Array.isArray(analysisResults)) {
       return str;
     }

@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const API_URL = 'http://127.0.0.1:5000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+
+export { API_URL };
 
 export const analyzeDocuments = async (files, topics, minScore, generateTopics) => {
   const formData = new FormData();

@@ -41,7 +41,6 @@ class SemanticModel:
 
     def preprocess_text(self, text: str) -> list[str]:
         text = re.sub(r"\s+", " ", text).strip()
-
         sentences = sent_tokenize(text)
 
         # Combine short sentences into passages

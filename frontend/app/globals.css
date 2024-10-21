@@ -125,25 +125,3 @@
     --topic-color-default: #333333;
   }
 }
- 
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-}
-
-@layer components {
-  .pdf-highlight {
-    background-color: yellow !important;
-    color: black !important;
-    display: inline !important;
-    padding: 0 2px !important;
-    margin: 0 1px !important;
-    border-radius: 2px !important;
-    box-shadow: 0 0 0 1px yellow !important;
-  }
-  
-}

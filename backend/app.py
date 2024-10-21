@@ -1,14 +1,13 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from werkzeug.utils import secure_filename
-import io
+import os
 from model import SemanticModel
 import logging
+from werkzeug.serving import run_simple
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
+CORS(app, resources={r"/*": {"origins": ["http://localhost:3000", "http://localhost:3001", "http://frontend:3001"]}})
 
-# Set up logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
@@ -45,4 +44,10 @@ def analyze_documents():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    port = int(os.environ.get('PORT', 5001))
+    if os.environ.get('FLASK_ENV') == 'production':
+        from werkzeug.middleware.proxy_fix import ProxyFix
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+        run_simple('0.0.0.0', port, app, use_reloader=False, threaded=True)
+    else:
+        app.run(host='0.0.0.0', port=port, debug=True)
