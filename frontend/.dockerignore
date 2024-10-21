@@ -1,0 +1,5 @@
+node_modules
+out
+
+# Temporarily comment out .next to allow it to be included in the Docker image
+# .next
