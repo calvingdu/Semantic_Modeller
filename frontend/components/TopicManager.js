@@ -41,22 +41,23 @@ export default function TopicManager({ topics, setTopics, onGenerateTopicsChange
         />
         <Button onClick={addTopic} className="w-full md:w-auto">
           <Plus className="h-6 w-10 mr-2" />
-          Add Topic
+          Add
         </Button>
       </div>
       <div 
-        className={`flex items-center justify-between p-4 rounded-lg mb-4 cursor-pointer transition-colors duration-300 ${
+        className={`flex items-center justify-between p-2 rounded-lg mb-4 cursor-pointer transition-colors duration-300 ${
           generateTopics 
             ? 'bg-green-500 dark:bg-green-800 text-white' 
             : 'bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-400'
         }`}
         onClick={() => onGenerateTopicsChange(!generateTopics)}
+        style={{ height: '40px' }}
       >
         <div className="flex items-center">
-          <Wand2 className="h-6 w-6 mr-2" />
-          <span className="text-lg font-semibold">Generate Topics</span>
+          <Wand2 className="h-4 w-4 mr-2" />
+          <span className="text-sm font-semibold">Generate Topics</span>
         </div>
-        <span className="text-sm font-medium">
+        <span className="text-xs font-medium">
           {generateTopics ? 'Enabled' : 'Disabled'}
         </span>
       </div>

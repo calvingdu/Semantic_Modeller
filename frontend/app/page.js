@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import FileUpload from '../components/FileUpload'
 import TopicManager from '../components/TopicManager'
 import AnalysisResults from '../components/AnalysisResults'
@@ -18,21 +18,55 @@ export default function Home() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [analysisError, setAnalysisError] = useState(null)
   const [generateTopics, setGenerateTopics] = useState(true)
+  const [topicColors, setTopicColors] = useState({})
+
+  useEffect(() => {
+    const colors = {};
+    topics.forEach((topic, index) => {
+      colors[topic] = `var(--topic-color-${(index % 5) + 1})`;
+    });
+    setTopicColors(colors);
+  }, [topics]);
 
   const handleTopicClick = useCallback((topic, file, page) => {
-    const fileIndex = files.findIndex(f => f.name === file);
+    const fileIndex = files.findIndex(f => f.file.name === file);
     if (fileIndex !== -1) {
       setCurrentFileIndex(fileIndex);
-      setCurrentPage(page);
+      setCurrentPage(parseInt(page));
     }
   }, [files]);
 
   const handleFileSelect = useCallback((file) => {
-    const fileIndex = files.findIndex(f => f.name === file);
+    const fileIndex = files.findIndex(f => f.file.name === file);
     if (fileIndex !== -1) {
       setCurrentFileIndex(fileIndex);
     }
   }, [files]);
+
+  const handleRemoveFiles = useCallback((removedFileNames) => {
+    setFiles(prevFiles => prevFiles.filter(file => !removedFileNames.includes(file.file.name)))
+    
+    if (analysisResults) {
+      setAnalysisResults(prevResults => 
+        prevResults.map(topicResult => ({
+          ...topicResult,
+          similar_passages: topicResult.similar_passages.filter(
+            passage => !removedFileNames.includes(passage.document)
+          )
+        })).filter(topicResult => topicResult.similar_passages.length > 0)
+      )
+    }
+
+    // Adjust currentFileIndex if necessary
+    setCurrentFileIndex(prevIndex => {
+      if (prevIndex >= files.length - removedFileNames.length) {
+        return Math.max(0, files.length - removedFileNames.length - 1);
+      }
+      return prevIndex;
+    })
+
+    setCurrentPage(1)
+  }, [files, analysisResults])
 
   const handleAnalysisComplete = useCallback((results) => {
     setAnalysisResults(results);
@@ -43,10 +77,6 @@ export default function Home() {
   const handleAnalysisError = useCallback((error) => {
     setAnalysisError(error);
     setIsAnalyzing(false);
-  }, []);
-
-  const handleFilesReady = useCallback((newFiles) => {
-    setFiles(newFiles);
   }, []);
 
   const handleGenerateTopicsChange = useCallback((value) => {
@@ -61,15 +91,16 @@ export default function Home() {
     });
   }, []);
 
+
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-1 py-8">
       <div className="flex justify-end mb-4">
         <ThemeSwitcher />
       </div>
       <TitleAnimation />
       
-      <div className="grid md:grid-cols-2 gap-8">
-        <div>
+      <div className="grid md:grid-cols-3 gap-8">
+        <div className="md:col-span-2">
           <FileUpload
             files={files}
             setFiles={setFiles}
@@ -77,7 +108,9 @@ export default function Home() {
             setCurrentFileIndex={setCurrentFileIndex}
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
-            onFilesReady={handleFilesReady}
+            analysisResults={analysisResults}
+            topics={topics}
+            onRemoveFiles={handleRemoveFiles}
           />
         </div>
         <div>
@@ -100,7 +133,7 @@ export default function Home() {
           <AnalysisResults 
             topics={topics}
             onTopicClick={handleTopicClick}
-            files={files}
+            files={files.map(file => file.file.name)}
             onFileSelect={handleFileSelect}
             analysisResults={analysisResults}
             minScore={minScore}

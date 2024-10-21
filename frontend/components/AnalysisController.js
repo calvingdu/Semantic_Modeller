@@ -30,7 +30,6 @@ export const analyzeDocuments = async (files, topics, minScore, generateTopics) 
       console.error('Server response:', errorText);
       throw new Error(`Analysis failed: ${response.status} ${response.statusText}`);
     }
-
     return await response.json();
   } catch (error) {
     console.error('Error during analysis:', error);
@@ -58,6 +57,7 @@ export default function AnalysisController({ files, topics, minScore, generateTo
 
       try {
         const results = await analyzeDocuments(files, topics, minScore, generateTopics);
+        console.log('Analysis results:', results);
         
         // Extract all topics from the results
         const allTopics = results.map(result => result.topic);
