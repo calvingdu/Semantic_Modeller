@@ -6,8 +6,16 @@ The use cases for a project like this is to act as the middle ground between AI 
 
 There's also 0 use of AI in this as the model is based off embeddings and similiarty search using methods such as Cosine similiarity which is purely math based. *This means it's completely free!*
 
-### Preview:
-![image](https://github.com/user-attachments/assets/37419b11-d09e-4a6a-9fcb-7924eb301db9)
+### Demo:
+
+
+
+
+https://github.com/user-attachments/assets/13d9ee07-297c-4ab9-be25-3a7d89ba4884
+
+
+
+
 
 ## Features
 
