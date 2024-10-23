@@ -4,7 +4,7 @@ This full-stack application is used for for semantic analysis of PDF documents. 
 
 The use cases for a project like this is to act as the middle ground between AI automation and manual work. For example, when writing a research paper, people want to avoid using AI incase of hallucinations or if they just want to read the context for themselves. This application let's you do that as it will outline where in the document related passages are and enables quick access for certain topics (similar to adding notes to a paper manually and coming back to them to find what you were thinking about) 
 
-There's also 0 use of AI in this as the model is based off embeddings and similiarty search using methods such as Cosine similiarity which is purely math based. *This means it's completely free!*
+There's also 0 use of LLM Models in this as the model is based off embeddings and similiarty search using methods such as Cosine similiarity which is purely math based. *This means it's completely free!*
 
 ### Demo:
 
